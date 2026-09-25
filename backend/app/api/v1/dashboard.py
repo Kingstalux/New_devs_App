@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal, ROUND_HALF_UP
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Dict, Any, Optional
 from app.services.cache import get_revenue_summary
@@ -32,13 +33,15 @@ async def get_dashboard_summary(
     if revenue_data is None:
         raise HTTPException(status_code=404, detail="Property not found")
 
-    total_revenue_float = float(revenue_data['total'])
-    
+    # Round the exact database sum once, to cents, and return it as a string:
+    # converting to float here would reintroduce binary rounding errors.
+    total_revenue = Decimal(revenue_data['total']).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
     return {
         "property_id": revenue_data['property_id'],
         "month": revenue_data.get('month'),
         "year": revenue_data.get('year'),
-        "total_revenue": total_revenue_float,
+        "total_revenue": str(total_revenue),
         "currency": revenue_data['currency'],
         "reservations_count": revenue_data['count']
     }

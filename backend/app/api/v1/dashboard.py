@@ -1,7 +1,10 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any
 from app.services.cache import get_revenue_summary
 from app.core.auth import authenticate_request as get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -15,8 +18,15 @@ async def get_dashboard_summary(
     if not tenant_id:
         raise HTTPException(status_code=403, detail="No tenant associated with this user")
 
-    revenue_data = await get_revenue_summary(property_id, tenant_id)
-    
+    try:
+        revenue_data = await get_revenue_summary(property_id, tenant_id)
+    except Exception as e:
+        logger.error(f"Revenue summary failed for {property_id} (tenant: {tenant_id}): {e}")
+        raise HTTPException(status_code=503, detail="Revenue data is temporarily unavailable")
+
+    if revenue_data is None:
+        raise HTTPException(status_code=404, detail="Property not found")
+
     total_revenue_float = float(revenue_data['total'])
     
     return {

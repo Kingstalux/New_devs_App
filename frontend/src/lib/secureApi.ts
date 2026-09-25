@@ -1450,22 +1450,23 @@ export class SecureAPIClient {
 
   // ============= DASHBOARD API =============
   /**
-   * Get dashboard summary with optional simulation header
+   * Get the properties owned by the current user's tenant
    */
-  async getDashboardSummary(propertyId: string, options?: { simulatedTenant?: string, timestamp?: number }) {
+  async getDashboardProperties(): Promise<Array<{ id: string; name: string; timezone: string }>> {
+    const res = await this.request<any>('/api/v1/dashboard/properties');
+    return Array.isArray(res) ? res : [];
+  }
+
+  /**
+   * Get dashboard summary for one of the current tenant's properties
+   */
+  async getDashboardSummary(propertyId: string, options?: { timestamp?: number }) {
     const queryParams = new URLSearchParams({ property_id: propertyId });
     if (options?.timestamp) {
       queryParams.append('_t', options.timestamp.toString());
     }
 
-    const requestOptions: RequestInit = {};
-    if (options?.simulatedTenant) {
-      requestOptions.headers = {
-        'X-Simulated-Tenant': options.simulatedTenant
-      };
-    }
-
-    return this.request<any>(`/api/v1/dashboard/summary?${queryParams}`, requestOptions);
+    return this.request<any>(`/api/v1/dashboard/summary?${queryParams}`);
   }
 
   async uploadCompanyLogo(logo_url: string) {

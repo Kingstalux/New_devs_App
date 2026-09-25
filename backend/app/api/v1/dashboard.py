@@ -1,13 +1,29 @@
 import logging
 from decimal import Decimal, ROUND_HALF_UP
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from app.services.cache import get_revenue_summary
+from app.services.reservations import list_tenant_properties
 from app.core.auth import authenticate_request as get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+@router.get("/dashboard/properties")
+async def get_dashboard_properties(
+    current_user: dict = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+
+    tenant_id = getattr(current_user, "tenant_id", None)
+    if not tenant_id:
+        raise HTTPException(status_code=403, detail="No tenant associated with this user")
+
+    try:
+        return await list_tenant_properties(tenant_id)
+    except Exception as e:
+        logger.error(f"Property list failed (tenant: {tenant_id}): {e}")
+        raise HTTPException(status_code=503, detail="Property list is temporarily unavailable")
 
 @router.get("/dashboard/summary")
 async def get_dashboard_summary(

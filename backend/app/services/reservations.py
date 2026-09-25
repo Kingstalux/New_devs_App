@@ -1,6 +1,35 @@
 from decimal import Decimal
 from typing import Dict, Any, List, Optional
 
+async def list_tenant_properties(tenant_id: str) -> List[Dict[str, Any]]:
+    """
+    Lists the properties owned by one tenant.
+
+    Raises if the database is unavailable, so callers never receive stand-in data.
+    """
+    from sqlalchemy import text
+    from app.core.database_pool import db_pool
+
+    await db_pool.initialize()
+    if not db_pool.session_factory:
+        raise RuntimeError("Database pool not available")
+
+    query = text("""
+        SELECT id, name, timezone
+        FROM properties
+        WHERE tenant_id = :tenant_id
+        ORDER BY name
+    """)
+
+    async with db_pool.get_session() as session:
+        result = await session.execute(query, {"tenant_id": tenant_id})
+        rows = result.fetchall()
+
+    return [
+        {"id": row.id, "name": row.name, "timezone": row.timezone}
+        for row in rows
+    ]
+
 async def calculate_total_revenue(
     property_id: str,
     tenant_id: str,

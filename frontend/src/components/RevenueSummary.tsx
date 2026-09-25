@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { SecureAPI } from '../lib/secureApi';
+import { getApiErrorDetail } from '../utils/errorMessages';
 
 interface RevenueData {
     property_id: string;
@@ -11,39 +12,44 @@ interface RevenueData {
 }
 
 interface RevenueSummaryProps {
-    propertyId?: string;
-    debugTenant?: string; 
+    propertyId: string;
     showRaw?: boolean;
 }
 
-export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId = 'prop-001', debugTenant, showRaw }) => {
+export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId, showRaw }) => {
     const [data, setData] = useState<RevenueData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const activeTenant = debugTenant || 'candidate';
-
     useEffect(() => {
+        // Ignore responses for a property the user has already switched away from
+        let cancelled = false;
+
         const fetchRevenue = async () => {
             setLoading(true);
+            setError('');
             try {
-                // Use SecureAPI to handle authentication automatically
-                // We pass the simulatedTenant option which SecureAPI will attach as a header
+                // Tenant is resolved server-side from the auth token
                 const response = await SecureAPI.getDashboardSummary(propertyId, {
-                    simulatedTenant: activeTenant,
                     timestamp: Date.now()
                 });
-                setData(response);
+                if (!cancelled) setData(response);
             } catch (err) {
-                setError('Failed to load revenue data');
                 console.error(err);
+                if (!cancelled) {
+                    setData(null);
+                    setError(getApiErrorDetail(err, 'Failed to load revenue data'));
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
         fetchRevenue();
-    }, [propertyId, activeTenant]);
+        return () => {
+            cancelled = true;
+        };
+    }, [propertyId]);
 
     if (loading) {
         return (

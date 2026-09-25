@@ -50,11 +50,11 @@ async def calculate_total_revenue(
     from app.core.database_pool import db_pool
 
     await db_pool.initialize()
+    # [MOCK] Raise instead of silently returning the hardcoded mock_data table that used to live in the except block
     if not db_pool.session_factory:
         raise RuntimeError("Database pool not available")
 
-    # Start from the tenant's own property so a property ID owned by another
-    # tenant yields no row, while a property with no bookings still returns zero.
+    # [LEAK] Start from the tenant's own property: another tenant's ID returns no row (404), an unbooked one returns 0
     query = text("""
         SELECT
             p.id AS property_id,
@@ -64,6 +64,7 @@ async def calculate_total_revenue(
         LEFT JOIN reservations r
             ON r.property_id = p.id
             AND r.tenant_id = p.tenant_id
+            -- [TZ] Month bounds use the property's timezone: res-tz-1 (29 Feb 23:30 UTC = 1 Mar 00:30 Paris) counts in March
             AND (
                 CAST(:month AS INTEGER) IS NULL
                 OR (

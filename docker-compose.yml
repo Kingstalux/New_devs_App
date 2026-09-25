@@ -21,7 +21,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      # Vite inlines these at build time; runtime environment vars never reach the static bundle
+      # [CONFIG] Profile page fix: Vite inlines these at build time; runtime env vars never reach the static bundle
       args:
         - VITE_API_URL=http://localhost:8000
         - VITE_BACKEND_URL=http://localhost:8000

@@ -18,7 +18,7 @@ interface RevenueSummaryProps {
     showRaw?: boolean;
 }
 
-// Build the label in UTC so the viewer's timezone can't shift it into the previous month
+// [TZ] Label built in UTC so the viewer's own timezone can't shift "March" into "February"
 const formatPeriod = (month: number | null, year: number | null) => {
     if (!month || !year) return 'All time';
     return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(undefined, {
@@ -28,8 +28,7 @@ const formatPeriod = (month: number | null, year: number | null) => {
     });
 };
 
-// The API sends the total as a decimal string already rounded to cents, so it is
-// only formatted here, never rounded again in floating point.
+// [CENTS] Replaces Math.round(total * 100) / 100: the API already rounded, so only format here, never re-round a float
 const formatMoney = (amount: string, currency: string) => {
     const value = Number(amount);
     try {
@@ -58,7 +57,7 @@ export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId, mont
             setLoading(true);
             setError('');
             try {
-                // Tenant is resolved server-side from the auth token
+                // [LEAK] Removed the client-sent X-Simulated-Tenant header: the tenant now comes only from the auth token
                 const response = await SecureAPI.getDashboardSummary(propertyId, {
                     month,
                     year,

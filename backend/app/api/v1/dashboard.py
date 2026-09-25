@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# [LEAK] New endpoint: the property dropdown was hardcoded, showing every tenant's properties to everyone
 @router.get("/dashboard/properties")
 async def get_dashboard_properties(
     current_user: dict = Depends(get_current_user)
@@ -32,7 +33,8 @@ async def get_dashboard_summary(
     year: Optional[int] = Query(None, ge=2000, le=2100),
     current_user: dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    
+
+    # [LEAK] Was falling back to a shared "default_tenant"; now a user without a tenant is refused
     tenant_id = getattr(current_user, "tenant_id", None)
     if not tenant_id:
         raise HTTPException(status_code=403, detail="No tenant associated with this user")
@@ -49,8 +51,7 @@ async def get_dashboard_summary(
     if revenue_data is None:
         raise HTTPException(status_code=404, detail="Property not found")
 
-    # Round the exact database sum once, to cents, and return it as a string:
-    # converting to float here would reintroduce binary rounding errors.
+    # [CENTS] Was float(total): round the exact Decimal sum once (half-up) and send it as a string, never as a float
     total_revenue = Decimal(revenue_data['total']).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
     return {

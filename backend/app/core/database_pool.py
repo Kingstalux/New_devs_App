@@ -16,10 +16,10 @@ class DatabasePool:
             return
 
         try:
-            # Reuse the configured DATABASE_URL, switching to the async driver
+            # [MOCK] Old URL read non-existent settings.supabase_db_* fields, so the pool never started and mock data was served
             database_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
             
-            # Async engines use AsyncAdaptedQueuePool by default; QueuePool is not supported here
+            # [MOCK] Removed poolclass=QueuePool: async engines reject it (they use AsyncAdaptedQueuePool by default)
             self.engine = create_async_engine(
                 database_url,
                 pool_size=20,  # Number of connections to maintain
@@ -47,6 +47,7 @@ class DatabasePool:
         if self.engine:
             await self.engine.dispose()
     
+    # [MOCK] No longer async: "async with db_pool.get_session()" needs the session itself, not a coroutine
     def get_session(self) -> AsyncSession:
         """Get database session from pool (use as `async with db_pool.get_session() as session`)"""
         if not self.session_factory:

@@ -15,9 +15,9 @@ async def get_revenue_summary(
     """
     Fetches revenue summary, utilizing caching to improve performance.
     """
-    # Property IDs are only unique per tenant, so the tenant must be part of the key.
-    # The period is part of the key so monthly and all-time figures never overwrite each other.
+    # [LEAK] Key was "revenue:{property_id}"; both tenants own "prop-001", so one tenant was served the other's cached totals
     period = f"{year}-{month:02d}" if month else "all"
+    # [TZ] Period is in the key too, so monthly and all-time figures never overwrite each other
     cache_key = f"revenue:{tenant_id}:{property_id}:{period}"
     
     # Try to get from cache

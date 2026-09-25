@@ -34,7 +34,7 @@ const Dashboard: React.FC = () => {
 
     const fetchProperties = async () => {
       try {
-        // Only the logged-in tenant's properties are returned
+        // [LEAK] Replaces the hardcoded list of all 5 properties with the logged-in tenant's own list from the API
         const result = await SecureAPI.getDashboardProperties();
         if (cancelled) return;
         setProperties(result);

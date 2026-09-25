@@ -13,8 +13,20 @@ interface RevenueData {
 
 interface RevenueSummaryProps {
     propertyId: string;
+    month?: number; // 1-12; omit together with year for all-time figures
+    year?: number;
     showRaw?: boolean;
 }
+
+// Build the label in UTC so the viewer's timezone can't shift it into the previous month
+const formatPeriod = (month: number | null, year: number | null) => {
+    if (!month || !year) return 'All time';
+    return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(undefined, {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC'
+    });
+};
 
 // The API sends the total as a decimal string already rounded to cents, so it is
 // only formatted here, never rounded again in floating point.
@@ -33,13 +45,13 @@ const formatMoney = (amount: string, currency: string) => {
     }
 };
 
-export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId, showRaw }) => {
+export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId, month, year, showRaw }) => {
     const [data, setData] = useState<RevenueData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        // Ignore responses for a property the user has already switched away from
+        // Ignore responses for a property or period the user has already switched away from
         let cancelled = false;
 
         const fetchRevenue = async () => {
@@ -48,6 +60,8 @@ export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId, show
             try {
                 // Tenant is resolved server-side from the auth token
                 const response = await SecureAPI.getDashboardSummary(propertyId, {
+                    month,
+                    year,
                     timestamp: Date.now()
                 });
                 if (!cancelled) setData(response);
@@ -66,7 +80,7 @@ export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId, show
         return () => {
             cancelled = true;
         };
-    }, [propertyId]);
+    }, [propertyId, month, year]);
 
     if (loading) {
         return (
@@ -106,6 +120,7 @@ export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId, show
                                 {displayTotal}
                             </span>
                         </div>
+                        <p className="text-sm text-gray-500 mt-1">{formatPeriod(data.month, data.year)}</p>
                     </div>
                 </div>
 

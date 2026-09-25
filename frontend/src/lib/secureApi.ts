@@ -1458,10 +1458,15 @@ export class SecureAPIClient {
   }
 
   /**
-   * Get dashboard summary for one of the current tenant's properties
+   * Get dashboard summary for one of the current tenant's properties,
+   * optionally limited to one calendar month (all time when omitted)
    */
-  async getDashboardSummary(propertyId: string, options?: { timestamp?: number }) {
+  async getDashboardSummary(propertyId: string, options?: { month?: number, year?: number, timestamp?: number }) {
     const queryParams = new URLSearchParams({ property_id: propertyId });
+    if (options?.month && options?.year) {
+      queryParams.append('month', options.month.toString());
+      queryParams.append('year', options.year.toString());
+    }
     if (options?.timestamp) {
       queryParams.append('_t', options.timestamp.toString());
     }
